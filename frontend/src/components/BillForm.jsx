@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { getServiceTypes, getCustomers } from '../utils/chartData';
-import { saveBill } from '../utils/billStorage';
-import { generateBillPDF } from '../utils/pdfGenerator';
+import { getServiceTypes, getCustomers } from '../utils/ChartData.js';
+import { saveBill } from '../utils/billStorage.js';
+import { generateBillPDF } from '../utils/pdfGenerator.js';
 import { assets } from '../assets/assets';
 
 /**

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser, registerUser } from '../utils/authUtils';
+import { loginUser, registerUser } from '../utils/authUtils.js';
 import Input from './Input';
 import Button from './Button';
 
