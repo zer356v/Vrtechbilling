@@ -1,5 +1,5 @@
 import { getSavedServices } from './serviceStorage';
-import { getCustomers } from './chartData';
+import { getCustomers } from './ChartData.js';
 
 // Calculate service completion data
 export const calculateServiceCompletion = () => {
