@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My React App</title>
+
+    <script>
+      // Fetch meta.json and log it
+      fetch('/meta.json')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('meta.json not found');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Meta data loaded:', data);
+        })
+        .catch(error => {
+          console.error('Error loading meta.json:', error);
+        });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- React scripts will be injected here -->
+  </body>
+</html>
