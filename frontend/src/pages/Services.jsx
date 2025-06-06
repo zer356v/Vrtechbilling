@@ -255,7 +255,7 @@ Notes: ${serviceDetails.notes || 'No additional notes'}`;
                   />
                 </div>
                 
-                <div className="md:col-span-2 flex gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2  gap-4">
                   <button
                     type="submit"
                     className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition-all"

@@ -200,9 +200,12 @@ const Reports = () => {
             {activeTab === 'revenue' && (
               <>
                 <Card title="Monthly Revenue" className="lg:col-span-3">
-                  <div className="h-80">
+                  <div className='overflow-x-auto'>
+                  <div className=" h-80">
                     <BarChart data={revenueData} height={300} />
                   </div>
+                  </div>
+                  
                 </Card>
                 
                 <Card title="Revenue Summary">
