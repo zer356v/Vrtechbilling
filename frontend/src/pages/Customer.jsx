@@ -6,6 +6,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import { exportCustomersToExcel } from '../utils/export';
+import { getSavedBills2,deleteBill2  } from '../utils/billstorage2.js';
 
 import { isLoggedIn } from '../utils/authUtils';
 import { 
@@ -27,16 +28,25 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    phone: '',
+    date: '',
+    invoiceno: '',
     address: '',
-    type: 'Residential'
+    
   });
+
+   // Get real bill data from localStorage
+   const allBills02 = getSavedBills2().map(bill => ({
+    id: bill.id,
+    date: bill.date,
+    invoiceNo: bill.invoiceNumber,
+    customer: bill.customer,
+    address:bill.address
+  }));
   
   useEffect(() => {
     if (!isLoggedIn()) {
       navigate('/');
-    } else {
+    } else {  
       loadCustomers();
       setLoading(false);
     }
@@ -67,10 +77,23 @@ const Customers = () => {
     setEditingCustomer(customer);
     setFormData({
       name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
+      date: customer.date,
+      invoiceno: customer.invoiceno,
       address: customer.address,
-      type: customer.type
+     
+    });
+    setShowForm(true);
+  };
+
+  
+  const handleEdit02 = (bills2) => {
+    setEditingCustomer(bills2);
+    setFormData({
+      name:bills2.name,
+      date: bills2.date,
+      invoiceno: bills2.invoiceno,
+      address: bills2.address,
+     
     });
     setShowForm(true);
   };
@@ -81,6 +104,13 @@ const Customers = () => {
       loadCustomers();
     }
   };
+
+  const handleDelete02 = (billsId) => {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
+      deleteBill2(billsId);
+    }
+  };
+  
   
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -98,10 +128,10 @@ const Customers = () => {
     setEditingCustomer(null);
     setFormData({
       name: '',
-      email: '',
-      phone: '',
+      date: '',
+      invoiceno: '',
       address: '',
-      type: 'Residential'
+     
     });
   };
 
@@ -110,19 +140,24 @@ const Customers = () => {
     setEditingCustomer(null);
     setFormData({
       name: '',
-      email: '',
-      phone: '',
+      date: '',
+      invoiceno: '',
       address: '',
-      type: 'Residential'
+      
     });
   };
   
   const filteredCustomers = customers.filter((customer) => {
     const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          customer.email.toLowerCase().includes(searchTerm.toLowerCase());
+                          customer.invoicen
     const matchesFilter = filterType === 'All' || customer.type === filterType;
+
+    
+    
     return matchesSearch && matchesFilter;
   });
+
+ 
   
   if (loading) {
     return (
@@ -150,21 +185,21 @@ const Customers = () => {
             </div>
             
             <div className="flex flex-wrap gap-2">
-  <Button 
-    onClick={() => setShowForm(!showForm)} 
-    className="mt-4 md:mt-0"
-  >
-    {showForm ? 'Cancel' : 'Add New Customer'}
-  </Button>
+          <Button 
+            onClick={() => setShowForm(!showForm)} 
+            className="mt-4 md:mt-0"
+          >
+            {showForm ? 'Cancel' : 'Add New Customer'}
+          </Button>
 
-  <Button 
-    onClick={() => exportCustomersToExcel(customers)} 
-    variant="secondary"
-    className="mt-4 md:mt-0"
-  >
-    Export to Excel
-  </Button>
-</div>
+          <Button 
+            onClick={() => exportCustomersToExcel(customers)} 
+            variant="secondary"
+            className="mt-4 md:mt-0"
+          >
+            Export to Excel
+          </Button>
+        </div>
 
           </div>
           
@@ -179,50 +214,32 @@ const Customers = () => {
                   placeholder="Enter customer name"
                   required
                 />
-                
-                <Input
-                  label="Email Address"
-                  name="email"
-                  type="email"
-                  value={formData.email}
+                 <Input
+                  label="Invoice no"
+                  name="invoiceno"
+                  value={formData.invoiceno}
                   onChange={handleFormChange}
-                  placeholder="Enter email address"
+                  placeholder="Enter invoice no"
+                  required
+                />
+                <Input
+                  label=" Address"
+                  name="address"
+                  type="text"
+                  value={formData.address}
+                  onChange={handleFormChange}
+                  placeholder="Enter  address"
                   required
                 />
                 
                 <Input
-                  label="Phone Number"
-                  name="phone"
-                  value={formData.phone}
+                  label="date"
+                  name="date"
+                  value={formData.date}
                   onChange={handleFormChange}
-                  placeholder="Enter phone number"
+                  placeholder="Enter date"
                   required
                 />
-                
-                <div>
-                  <label className="block mb-2 text-sm font-medium text-gray-700">Customer Type</label>
-                  <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleFormChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="Residential">Residential</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Multi-unit">Multi-unit</option>
-                  </select>
-                </div>
-                
-                <div className="md:col-span-2">
-                  <Input
-                    label="Address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleFormChange}
-                    placeholder="Enter full address"
-                    required
-                  />
-                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2  gap-4">
                   <Button type="button" variant="secondary" onClick={handleCancelForm}>
@@ -240,24 +257,13 @@ const Customers = () => {
             <div className="flex flex-wrap gap-4 mb-4">
               <div className="flex-1">
                 <Input
-                  placeholder="Search customers by name or email..."
+                  placeholder="Search customers by name or invoice no"
                   value={searchTerm}
                   onChange={handleSearchChange}
                   name="search"
                 />
               </div>
-              <div className="w-48">
-                <select
-                  value={filterType}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="All">All Types</option>
-                  <option value="Residential">Residential</option>
-                  <option value="Commercial">Commercial</option>
-                  <option value="Multi-unit">Multi-unit</option>
-                </select>
-              </div>
+              
             </div>
             
             {filteredCustomers.length === 0 ? (
@@ -273,30 +279,20 @@ const Customers = () => {
                   <thead>
                     <tr className="bg-gray-50 border-b">
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Info</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">invoiceNo</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filteredCustomers.map((customer) => (
                       <tr key={customer.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          <div>{customer.email}</div>
-                          <div>{customer.phone}</div>
-                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.invoiceno}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.date}</td>
                         <td className="px-6 py-4 text-sm text-gray-500">{customer.address}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            customer.type === 'Residential' ? 'bg-green-100 text-green-800' :
-                            customer.type === 'Commercial' ? 'bg-blue-100 text-blue-800' :
-                            'bg-purple-100 text-purple-800'
-                          }`}>
-                            {customer.type}
-                          </span>
-                        </td>
+                       
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button 
                             onClick={() => handleEdit(customer)}
@@ -306,6 +302,31 @@ const Customers = () => {
                           </button>
                           <button 
                             onClick={() => handleDelete(customer.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tbody className="divide-y divide-gray-200">
+                    {allBills02.map(( bills2) => (
+                      <tr key={bills2.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{bills2.customer}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{bills2.invoiceNo}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{bills2.date}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">{bills2.address}</td>
+                       
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button 
+                            onClick={() => handleEdit(bills2)}
+                            className="text-blue-600 hover:text-blue-900 mr-4"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(bills2.id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Delete

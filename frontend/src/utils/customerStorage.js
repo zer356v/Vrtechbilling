@@ -1,13 +1,14 @@
 /**
  * @typedef {Object} SavedCustomer
  * @property {string} id - Unique identifier for the customer
- * @property {string} name - Customer name
- * @property {string} email - Customer email
- * @property {string} phone - Customer phone number
+ * @property {string} customer - Customer name
+ * @property {string} date - Customer email
+ * @property {string} invoiceNo - Customer phone number
  * @property {string} address - Customer address
- * @property {'Residential' | 'Commercial' | 'Multi-unit'} type - Customer type
  * @property {string} createdAt - Creation timestamp
  */
+
+
 
 const CUSTOMERS_STORAGE_KEY = 'saved_customers';
 

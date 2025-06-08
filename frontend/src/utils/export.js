@@ -8,10 +8,9 @@ import { saveAs } from 'file-saver';
 export const exportCustomersToExcel = (customers) => {
   const worksheet = XLSX.utils.json_to_sheet(customers.map(c => ({
     Name: c.name,
-    Email: c.email,
-    Phone: c.phone,
+    Date: c.date,
+    InvoiceNo: c.invoiceno,
     Address: c.address,
-    Type: c.type,
     CreatedAt: c.createdAt,
   })));
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getServiceTypes, getCustomers } from '../utils/ChartData.js';
 import { saveBill } from '../utils/billStorage.js';
+import { saveBill2 } from '../utils/billstorage2.js';
 import { generateBillPDF } from '../utils/pdfGenerator.js';
 import { assets } from '../assets/assets';
 
@@ -184,6 +185,23 @@ const BillForm = ({ onBillSaved }) => {
     
     // Save the bill to localStorage
     const savedBill = saveBill({
+      billtype:billData.billtype,
+      customer: billData.customer,
+      address: billData.address,
+      city: billData.city,
+      state: billData.state,
+      zip: billData.zip,
+      invoice: billData.invoice,
+      date: billData.date,
+      additionalItems: billData.additionalItems,
+      notes: billData.notes,
+      subtotal: totals.subtotal,
+      taxAmount: totals.tax,
+      total: totals.total
+    });
+
+    // Save the bill to localStorage 2
+    const savedBill2 = saveBill2({
       billtype:billData.billtype,
       customer: billData.customer,
       address: billData.address,
