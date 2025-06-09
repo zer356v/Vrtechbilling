@@ -34,7 +34,7 @@ export const generateBillPDF = (bill) => {
   // Header - Logo
 if (assets.logo) {
   // Add logo image to header
-  pdf.addImage(assets.logo, 'PNG', 20, 0, 170, 40);
+  pdf.addImage(assets.logo, 'PNG', 0, 0, 220, 42);
 }
 let y = 30; // keep y the same if the image fits above
 
@@ -205,7 +205,7 @@ y += 20;
   
 if (assets.footer) {
   // Add logo image to header
-  pdf.addImage(assets.footer, 'PNG', 20, 268, 170, 30);
+  pdf.addImage(assets.footer, 'PNG', 0, 268, 210, 30);
 }
   
   // Download the PDF

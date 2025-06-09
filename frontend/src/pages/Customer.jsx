@@ -22,26 +22,70 @@ const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
-  
+  const [bills, setBills] = useState([]);
+
+
   // Form state
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [formData, setFormData] = useState({
-    name: '',
-    date: '',
-    invoiceno: '',
+    customer: '',
+    date: new Date().toISOString().split('T')[0],
+    invoice: '',
     address: '',
     
   });
+  
 
    // Get real bill data from localStorage
    const allBills02 = getSavedBills2().map(bill => ({
     id: bill.id,
     date: bill.date,
-    invoiceNo: bill.invoiceNumber,
+    invoice: bill.invoice,
     customer: bill.customer,
     address:bill.address
   }));
+
+  useEffect(() => {
+  if (!isLoggedIn()) {
+    navigate('/');
+  } else {
+    loadCustomers();
+    loadBills(); // <-- load bills here
+    setLoading(false);
+  }
+}, [navigate]);
+
+
+
+  const loadBills = () => {
+  const savedBills = getSavedBills2();
+  setBills(savedBills);
+};
+
+
+const handleEditBill = (bill) => {
+  setEditingCustomer(bill);
+  setFormData({
+    customer: bill.customer,
+    date: bill.date,
+    invoice: bill.invoice,
+    address: bill.address,
+  });
+  setShowForm(true);
+};
+
+
+const handleDeleteBill = (billId) => {
+  if (window.confirm('Are you sure you want to delete this bill?')) {
+    deleteBill2(billId);
+    loadBills();
+  }
+};
+
+
+
+
   
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -76,9 +120,9 @@ const Customers = () => {
   const handleEdit = (customer) => {
     setEditingCustomer(customer);
     setFormData({
-      name: customer.name,
+      customer: customer.customer,
       date: customer.date,
-      invoiceno: customer.invoiceno,
+      invoice: customer.invoice,
       address: customer.address,
      
     });
@@ -86,17 +130,7 @@ const Customers = () => {
   };
 
   
-  const handleEdit02 = (bills2) => {
-    setEditingCustomer(bills2);
-    setFormData({
-      name:bills2.name,
-      date: bills2.date,
-      invoiceno: bills2.invoiceno,
-      address: bills2.address,
-     
-    });
-    setShowForm(true);
-  };
+  
 
   const handleDelete = (customerId) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
@@ -105,57 +139,61 @@ const Customers = () => {
     }
   };
 
-  const handleDelete02 = (billsId) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
-      deleteBill2(billsId);
-    }
-  };
+  
   
   
   const handleFormSubmit = (e) => {
-    e.preventDefault();
-    
-    if (editingCustomer) {
-      // Update existing customer
-      updateCustomer(editingCustomer.id, formData);
-    } else {
-      // Create new customer
-      saveCustomer(formData);
-    }
-    
+  e.preventDefault();
+
+  if (editingCustomer && editingCustomer.invoiceNumber) {
+    // It's a bill, not a customer (bills have invoiceNumber, customers don't)
+    const updatedBills = bills.map((bill) =>
+      bill.id === editingCustomer.id ? { ...bill, ...formData } : bill
+    );
+    localStorage.setItem('saved_bills02', JSON.stringify(updatedBills));
+    loadBills();
+  } else if (editingCustomer) {
+    // Update customer
+    updateCustomer(editingCustomer.id, formData);
     loadCustomers();
-    setShowForm(false);
-    setEditingCustomer(null);
-    setFormData({
-      name: '',
-      date: '',
-      invoiceno: '',
-      address: '',
-     
-    });
-  };
+  } else {
+    // New customer
+    saveCustomer(formData);
+    loadCustomers();
+  }
+
+  setShowForm(false);
+  setEditingCustomer(null);
+  setFormData({
+    customer: '',
+    date: new Date().toISOString().split('T')[0],
+    invoice: '',
+    address: '',
+  });
+};
+
 
   const handleCancelForm = () => {
     setShowForm(false);
     setEditingCustomer(null);
     setFormData({
-      name: '',
-      date: '',
-      invoiceno: '',
+      customer: '',
+      date: new Date().toISOString().split('T')[0],
+      invoice: '',
       address: '',
       
     });
   };
   
-  const filteredCustomers = customers.filter((customer) => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          customer.invoicen
-    const matchesFilter = filterType === 'All' || customer.type === filterType;
+ const filteredData = [...customers, ...bills].filter((item) => {
+  const matchesSearch =
+  (item.customer?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+  (item.invoice?.toLowerCase() || "").includes(searchTerm.toLowerCase())
 
-    
-    
-    return matchesSearch && matchesFilter;
-  });
+  const matchesFilter = filterType === 'All' || item.type === filterType;
+
+  return matchesSearch && matchesFilter;
+});
 
  
   
@@ -208,16 +246,16 @@ const Customers = () => {
               <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Customer Name"
-                  name="name"
-                  value={formData.name}
+                  name="customer"
+                  value={formData.customer}
                   onChange={handleFormChange}
                   placeholder="Enter customer name"
                   required
                 />
                  <Input
                   label="Invoice no"
-                  name="invoiceno"
-                  value={formData.invoiceno}
+                  name="invoice"
+                  value={formData.invoice}
                   onChange={handleFormChange}
                   placeholder="Enter invoice no"
                   required
@@ -266,7 +304,7 @@ const Customers = () => {
               
             </div>
             
-            {filteredCustomers.length === 0 ? (
+            {filteredData.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 {customers.length === 0 
                   ? 'No customers found. Add your first customer using the "Add New Customer" button.'
@@ -286,22 +324,22 @@ const Customers = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredCustomers.map((customer) => (
+                    {filteredData.map((customer) => (
                       <tr key={customer.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.invoiceno}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.customer}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.invoice}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{customer.date}</td>
                         <td className="px-6 py-4 text-sm text-gray-500">{customer.address}</td>
                        
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button 
-                            onClick={() => handleEdit(customer)}
+                             onClick={() => customer.invoiceNumber ? handleEditBill(customer) : handleEdit(customer)}
                             className="text-blue-600 hover:text-blue-900 mr-4"
                           >
                             Edit
                           </button>
                           <button 
-                            onClick={() => handleDelete(customer.id)}
+                            onClick={() => customer.invoiceNumber ? handleDeleteBill(customer.id) : handleDelete(customer.id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Delete
@@ -310,31 +348,7 @@ const Customers = () => {
                       </tr>
                     ))}
                   </tbody>
-                  <tbody className="divide-y divide-gray-200">
-                    {allBills02.map(( bills2) => (
-                      <tr key={bills2.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{bills2.customer}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{bills2.invoiceNo}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500">{bills2.date}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{bills2.address}</td>
-                       
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button 
-                            onClick={() => handleEdit(bills2)}
-                            className="text-blue-600 hover:text-blue-900 mr-4"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(bills2.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                 
                 </table>
               </div>
             )}
