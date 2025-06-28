@@ -34,7 +34,7 @@ export const generateBillPDF = (bill) => {
   // Header - Logo
 if (assets.logo) {
   // Add logo image to header
-  pdf.addImage(assets.logo, 'PNG', 0, 0, 220, 42);
+  pdf.addImage(assets.logo, 'PNG', 20, 0, 170, 40);
 }
 let y = 30; // keep y the same if the image fits above
 
@@ -55,8 +55,13 @@ let y = 30; // keep y the same if the image fits above
   pdf.setFont('helvetica', 'normal');
   pdf.text(bill.customer, 20, y);
   y += 5;
-  pdf.text(bill.address, 20, y);
-  y += 5;
+  // Handle multi-line address
+  const addressLines = bill.address.split('\n').filter(line => line.trim() !== '');
+  addressLines.forEach(line => {
+    pdf.text(line.trim(), 20, y);
+    y += 5;
+  });
+  
   pdf.text(`${bill.city}, ${bill.state} - ${bill.zip}`, 20, y);
   
   // Invoice details (right side)
@@ -113,9 +118,9 @@ bill.additionalItems.forEach((item, index) => {
     item.hsn,
     item.units.toString(),
     `${item.price}`,
-    `${item.gst}%`,
-    `${item.cgst}`,
-    `${item.sgst}`,
+    item.gst && item.gst !== '0' ? `${item.gst}%` : '-',
+    item.cgst && item.cgst !== '0.00' ? `${item.cgst}` : '-',
+    item.sgst && item.sgst !== '0.00' ? `${item.sgst}` : '-',
     `${item.totalAmount}`,
   ];
 
@@ -205,7 +210,7 @@ y += 20;
   
 if (assets.footer) {
   // Add logo image to header
-  pdf.addImage(assets.footer, 'PNG', 0, 268, 210, 30);
+  pdf.addImage(assets.footer, 'PNG', 20, 268, 170, 30);
 }
   
   // Download the PDF

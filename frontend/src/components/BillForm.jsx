@@ -271,7 +271,9 @@ const BillForm = ({ onBillSaved }) => {
                 <div className='px-12'>
                   <p><strong>TO:</strong></p>
                   <p>{billData.customer}</p>
-                  <p>{billData.address}</p>
+                  <div className="whitespace-pre-line">
+                    {billData.address}
+                  </div>
                   <p>{billData.city}, {billData.state} - {billData.zip}</p>
                 </div>
                 <div className='px-12'>
@@ -302,9 +304,9 @@ const BillForm = ({ onBillSaved }) => {
                       <td className="border p-2 text-center font-bold">{item.hsn}</td>
                       <td className='border p-2 text-center font-bold'>{item.units}</td>
                       <td className="border p-2 text-center font-bold">₹{item.price}</td>
-                      <td className="border p-2 text-center font-bold">{item.gst}%</td>
-                      <td className="border p-2 text-center font-bold">₹{item.cgst}</td>
-                      <td className="border p-2 text-center font-bold">₹{item.sgst}</td>
+                      <td className="border p-2 text-center font-bold">{item.gst && item.gst !== '0' ? `${item.gst}%` : '-'}</td>
+                      <td className="border p-2 text-center font-bold">{item.cgst && item.cgst !== '0.00' ? `₹${item.cgst}` : '-'}</td>
+                      <td className="border p-2 text-center font-bold">{item.sgst && item.sgst !== '0.00' ? `₹${item.sgst}` : '-'}</td>
                       <td className="border p-2 text-center font-bold">₹{item.totalAmount}</td>
                     </tr>
                   ))}
@@ -377,16 +379,16 @@ const BillForm = ({ onBillSaved }) => {
             />
           </div>
           
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-gray-700 font-medium mb-2">Address</label>
-            <input
+            <textarea
               name="address"
               value={billData.address}
               onChange={handleInputChange}
               id="address"
-              type="text"
               required
-              className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full"
+              rows={3}
+              className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full resize-y"
               placeholder="Enter Address"
             />
           </div>
@@ -587,9 +589,9 @@ const BillForm = ({ onBillSaved }) => {
                       <td className="px-4 py-2">{item.hsn}</td>
                       <td className="px-4 py-2">{item.units}</td>
                       <td className="px-4 py-2">₹{item.price}</td>
-                      <td className="px-4 py-2">{item.gst}%</td>
-                      <td className="px-4 py-2">₹{item.cgst}</td>
-                      <td className="px-4 py-2">₹{item.sgst}</td>
+                      <td className="border p-2 text-center font-bold">{item.gst && item.gst !== '0' ? `${item.gst}%` : '-'}</td>
+                      <td className="border p-2 text-center font-bold">{item.cgst && item.cgst !== '0.00' ? `₹${item.cgst}` : '-'}</td>
+                      <td className="border p-2 text-center font-bold">{item.sgst && item.sgst !== '0.00' ? `₹${item.sgst}` : '-'}</td>
                       <td className="px-4 py-2">₹{item.totalAmount}</td>
                       <td className="px-4 py-2 text-center">
                         <button

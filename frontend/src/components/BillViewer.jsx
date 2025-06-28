@@ -62,7 +62,9 @@ const BillViewer = ({ bill, onClose, onDownload }) => {
         <div className='px-12'>
             <p><strong>TO:</strong></p>
             <p>{bill.customer}</p>
-            <p>{bill.address}</p>
+            <div className="whitespace-pre-line">
+                    {bill.address}
+            </div>
             <p>{bill.city}, {bill.state} - {}</p>
         </div>
         <div className='px-12'>
@@ -95,9 +97,9 @@ const BillViewer = ({ bill, onClose, onDownload }) => {
                       <td className="border p-2 text-center font-bold">{item.hsn}</td>
                       <td className='border p-2 text-center font-bold'>{item.units}</td>
                       <td className="border p-2 text-center font-bold">₹{item.price}</td>
-                      <td className="border p-2 text-center font-bold">{item.gst}%</td>
-                      <td className="border p-2 text-center font-bold">₹{item.cgst}</td>
-                      <td className="border p-2 text-center font-bold">₹{item.sgst}</td>
+                       <td className="border p-2 text-center font-bold">{item.gst && item.gst !== '0' ? `${item.gst}%` : '-'}</td>
+                      <td className="border p-2 text-center font-bold">{item.cgst && item.cgst !== '0.00' ? `₹${item.cgst}` : '-'}</td>
+                      <td className="border p-2 text-center font-bold">{item.sgst && item.sgst !== '0.00' ? `₹${item.sgst}` : '-'}</td>
                       <td className="border p-2 text-center font-bold">₹{item.totalAmount}</td>
                     </tr>
                         ))}
