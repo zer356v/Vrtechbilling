@@ -1,7 +1,17 @@
 import jsPDF from 'jspdf';
 import { assets } from '../assets/assets';
 
-// Convert number to words
+// --- HELPER FUNCTIONS ---
+
+function wrapText(pdf, text, maxWidth) {
+  return pdf.splitTextToSize(text, maxWidth);
+}
+
+function getTextHeight(pdf, lines) {
+  const lineHeight = 4;
+  return lines.length * lineHeight;
+}
+
 function convertToWords(n) {
   const a = [
     '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six',
@@ -38,149 +48,176 @@ function convertToWords(n) {
   return str.trim().toUpperCase();
 }
 
-/**
- * Generate a PDF from a bill and trigger download
- * @param {Object} bill - The bill to generate a PDF for
- */
+// --- PDF GENERATOR ---
+
 export const generateBillPDF = (bill) => {
   const pdf = new jsPDF();
-  
-  // Set font
   pdf.setFont('helvetica');
-  
-  // Header - Logo
-if (assets.logo) {
-  // Add logo image to header
-  pdf.addImage(assets.logo, 'PNG', 20, 0, 170, 40);
-}
-let y = 30; // keep y the same if the image fits above
 
-  // Invoice title
+  if (assets.logo) {
+    pdf.addImage(assets.logo, 'PNG', 0, 0, 210, 40); // x=0, width=210mm
+  }
+
+  let y = 30;
   pdf.setFontSize(16);
-  pdf.setTextColor(0, 0, 0);
   pdf.text(bill.billtype, 105, 45, { align: 'center' });
-  y +=30;
-  
-  
-  // Customer and Invoice details
+  y += 30;
+
   pdf.setFontSize(10);
-  
-  // TO section (left side)
   pdf.setFont('helvetica', 'bold');
   pdf.text('TO:', 20, y);
   y += 5;
   pdf.setFont('helvetica', 'normal');
   pdf.text(bill.customer, 20, y);
   y += 5;
-  // Handle multi-line address
+
   const addressLines = bill.address.split('\n').filter(line => line.trim() !== '');
   addressLines.forEach(line => {
     pdf.text(line.trim(), 20, y);
     y += 5;
   });
-  
+
   pdf.text(`${bill.city}, ${bill.state} - ${bill.zip}`, 20, y);
-  
-  // Invoice details (right side)
-  const invoiceY = y - 15;
+
+  const invoiceY = y - (addressLines.length + 2) * 5;
   pdf.setFont('helvetica', 'bold');
   pdf.text('INVOICE NO:', 150, invoiceY);
   pdf.setFont('helvetica', 'normal');
   pdf.text(bill.invoice, 173, invoiceY);
-
   pdf.setFont('helvetica', 'bold');
   pdf.text('DATE:', 150, invoiceY + 5);
   pdf.setFont('helvetica', 'normal');
   pdf.text(bill.date, 165, invoiceY + 5);
-  
+
   y += 20;
-  
- // Table Header
-pdf.setFillColor(255, 255, 255);
-pdf.setFontSize(9);
-pdf.setFont('helvetica', 'bold');
 
-// Define columns
-const columns = [
-  { title: 'SL NO', x: 20, width: 13 },
-  { title: 'ITEM DESCRIPTION', x: 33, width: 47 },
-  { title: 'HSN', x: 80, width: 15 },
-  { title: 'UNIT', x: 95, width: 15 },
-  { title: 'RATE', x: 110, width: 15 },
-  { title: 'GST', x: 125, width: 15 },
-  { title: 'CGST', x: 140, width: 15 },
-  { title: 'SGST', x: 155, width: 15 },
-  { title: 'TOTAL AMT', x: 170, width: 25 },
-];
+  // Table Header
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9);
+  pdf.setFillColor(255, 255, 255);
 
-// Draw header background and borders
-const headerHeight = 10;
-pdf.rect(20, y, 190, headerHeight, 'F');
-columns.forEach(col => {
-  pdf.rect(col.x, y, col.width, headerHeight);
-  pdf.text(col.title, col.x + 1.5, y + 7);
-});
-
-y += headerHeight + 2;
-
-// Table Body
-pdf.setFont('helvetica', 'normal');
-let grandTotal = 0;
-
-bill.additionalItems.forEach((item, index) => {
-  const rowHeight = 8;
-  const values = [
-    item.sno.toString(),
-    item.name,
-    item.hsn,
-    item.units.toString(),
-    `${item.price}`,
-    item.gst && item.gst !== '0' ? `${item.gst}%` : '-',
-    item.cgst && item.cgst !== '0.00' ? `${item.cgst}` : '-',
-    item.sgst && item.sgst !== '0.00' ? `${item.sgst}` : '-',
-    `${item.totalAmount}`,
+  const columns = [
+    { title: 'SL NO', x: 18, width: 13 },
+    { title: 'ITEM DESCRIPTION', x: 31, width: 47 },
+    { title: 'HSN', x: 78, width: 15 },
+    { title: 'QTY', x: 93, width: 15 },
+    { title: 'RATE', x: 108, width: 15 },
+    { title: 'GST', x: 123, width: 15 },
+    { title: 'CGST', x: 138, width: 15 },
+    { title: 'SGST', x: 153, width: 15 },
+    { title: 'TOTAL AMT', x: 168, width: 38 }, // shifted left & reduced width
   ];
+  
 
-  columns.forEach((col, i) => {
-    pdf.rect(col.x, y, col.width, rowHeight);
-    pdf.text(values[i], col.x + 1.5, y + 6);
+  const headerHeight = 10;
+  pdf.rect(20, y, 190, headerHeight, 'F');
+  columns.forEach(col => {
+    pdf.rect(col.x, y, col.width, headerHeight);
+    const centerX = col.x + col.width / 2;
+    pdf.text(col.title, centerX, y + 7, { align: 'center' });
   });
 
-  grandTotal += parseFloat(item.totalAmount) || 0;
-  y += rowHeight;
-});
+  y += headerHeight + 2;
+  pdf.setFont('helvetica', 'normal');
 
-// Grand Total Row (with custom 2-column border)
+  let grandTotal = 0;
+
+  bill.additionalItems.forEach((item, index) => {
+    const descriptionWrapped = wrapText(pdf, item.name || '', columns[1].width - 2);
+    const rowHeight = Math.max(10, getTextHeight(pdf, descriptionWrapped) + 4);
+
+    if (y + rowHeight > 270) {
+      pdf.addPage();
+      y = 20;
+    }
+
+    const values = [
+      item.sno.toString(),
+      item.name,
+      item.hsn,
+      item.units.toString() + item.quantityType.toString(),
+      `${item.price}`,
+      item.gst && item.gst !== '0' ? `${item.gst}%` : '-',
+      item.cgst && item.cgst !== '0.00' ? `${item.cgst}` : '-',
+      item.sgst && item.sgst !== '0.00' ? `${item.sgst}` : '-',
+      `${item.totalAmount}`,
+    ];
+
+    columns.forEach((col, i) => {
+      pdf.rect(col.x, y, col.width, rowHeight);
+
+      if (i === 1) {
+        // Centered multiline description
+        const lines = wrapText(pdf, values[i], col.width - 2);
+        const startY = y + (rowHeight - lines.length * 4) / 2;
+        const centerX = col.x + col.width / 2;
+        pdf.setFontSize(12);
+        lines.forEach((line, idx) => {
+          pdf.text(line, centerX, startY + idx * 4 + 3, { align: 'center' });
+        });
+        pdf.setFontSize(9);
+      } else {
+        const text = values[i];
+        const textY = y + rowHeight / 2 + 2;
+
+        const centerX = col.x + col.width / 2;
+        pdf.text(text, centerX, textY, { align: 'center' });
+      }
+    });
+
+    grandTotal += parseFloat(item.totalAmount) || 0;
+    y += rowHeight;
+  });
+
+// Grand Total
 const totalRowHeight = 8;
-const labelWidth = 135;
-const valueWidth = 40;
+const totalAmtCol = columns.find(col => col.title === 'TOTAL AMT');
+
+// Draw left portion (all columns except the last one)
+const labelX = columns[0].x;
+const labelWidth = totalAmtCol.x - labelX;
 
 pdf.setFont('helvetica', 'bold');
+pdf.rect(labelX, y, labelWidth, totalRowHeight);
+pdf.rect(totalAmtCol.x, y, totalAmtCol.width, totalRowHeight);
 
-// Draw the two bordered boxes
-pdf.rect(20, y, labelWidth, totalRowHeight);               // Label box
-pdf.rect(20 + labelWidth, y, valueWidth, totalRowHeight);  // Amount box
+// Label cell centered
+pdf.text('GRAND TOTAL', labelX + labelWidth / 2, y + 6, { align: 'center' });
 
-// Text inside the boxes
-pdf.text('GRAND TOTAL', 22, y + 6);
+// Value cell center-aligned (instead of right)
 const totalText = `${grandTotal.toFixed(2)}`;
-const textWidth = pdf.getTextWidth(totalText);
-pdf.text(totalText, 20 + labelWidth + (valueWidth - textWidth) / 2, y + 6);
-
-y += 15;
-// Amount in Words
-pdf.setFont('helvetica', 'bold');
-pdf.text('Amount in Words:', 20, y);
-pdf.setFont('helvetica', 'normal');
-const amountInWords = convertToWords(Math.round(grandTotal));
-pdf.text(`${amountInWords} RUPEES ONLY`, 20, y + 5);
-y += 20;
+pdf.text(totalText, totalAmtCol.x + totalAmtCol.width / 2, y + 6, { align: 'center' });
 
   
-  // Declaration and Bank Details section
+
+  y += 15;
+
+  // Notes
+  if (bill.notes) {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.text('Notes:', 20, y);
+    y += 5;
+
+    pdf.setFont('helvetica', 'normal');
+    const notesWrapped = wrapText(pdf, bill.notes, 170);
+    notesWrapped.forEach(line => {
+      pdf.text(line, 20, y);
+      y += 4;
+    });
+    y += 5;
+  }
+
+  // Amount in Words
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Amount in Words:', 20, y);
+  pdf.setFont('helvetica', 'normal');
+  const amountInWords = convertToWords(Math.round(grandTotal));
+  pdf.text(`${amountInWords} RUPEES ONLY`, 20, y + 5);
+  y += 20;
+
+  // Declaration
   pdf.setFontSize(9);
-  
-  // Declaration (left side)
   pdf.setFont('helvetica', 'bold');
   pdf.text('Declaration:', 20, y);
   y += 5;
@@ -190,46 +227,42 @@ y += 20;
     90
   );
   pdf.text(declaration, 20, y);
-  
-  // Bank Details (right side)
+
+  // Bank Details
   const bankY = y - 5;
   pdf.setFont('helvetica', 'bold');
   pdf.text('Bank name:', 150, bankY);
   pdf.setFont('helvetica', 'normal');
   pdf.text('HDFC bank', 170, bankY);
-  
+
   pdf.setFont('helvetica', 'bold');
   pdf.text('Ac/no:', 150, bankY + 5);
   pdf.setFont('helvetica', 'normal');
   pdf.text('5010 0562 3633 08', 170, bankY + 5);
-  
+
   pdf.setFont('helvetica', 'bold');
   pdf.text('IFSC code:', 150, bankY + 10);
   pdf.setFont('helvetica', 'normal');
   pdf.text('HDFC0003760', 170, bankY + 10);
-  
+
   pdf.setFont('helvetica', 'bold');
   pdf.text('G PAY:', 150, bankY + 15);
   pdf.setFont('helvetica', 'normal');
   pdf.text('9790811296', 170, bankY + 15);
-  
+
   y += 35;
-  
-  // Signatures section
+
+  // Signatures
   pdf.setFont('helvetica', 'normal');
-  pdf.text('Customer Signature:',   20, 240);
+  pdf.text('Customer Signature:', 20, 240);
   pdf.text('Computer generated invoice requires no signature:', 75, 240);
   pdf.text('For VR TECH HVAC Solutions:', 150, 240);
-  
-  y += 15;
-  
-  // Footer - Company Details
-  
-if (assets.footer) {
-  // Add logo image to header
-  pdf.addImage(assets.footer, 'PNG', 20, 268, 170, 30);
-}
-  
-  // Download the PDF
+
+  // Footer Image
+  if (assets.footer) {
+    pdf.addImage(assets.footer, 'PNG', 0, 268, 210, 30); // x=0, width=210mm
+  }
+
+  // Save
   pdf.save(`Invoice-${bill.invoice}.pdf`);
 };

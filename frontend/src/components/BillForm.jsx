@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { getServiceTypes, getCustomers } from '../utils/ChartData.js';
-import { saveBill } from '../utils/billStorage.js';
-import { saveBill2 } from '../utils/billstorage2.js';
-import { generateBillPDF } from '../utils/pdfGenerator.js';
-import { assets } from '../assets/assets';
+import React, { useState } from "react";
+import { getServiceTypes, getCustomers } from "../utils/ChartData.js";
+import { saveBill } from "../utils/billStorage.js";
+import { saveBill2 } from "../utils/billstorage2.js";
+import { generateBillPDF } from "../utils/pdfGenerator.js";
+import { assets } from "../assets/assets";
 
 /**
  * Bill creation form component
@@ -11,34 +11,34 @@ import { assets } from '../assets/assets';
  * @param {Function} [props.onBillSaved] - Optional callback when a bill is saved
  */
 const BillForm = ({ onBillSaved }) => {
-
   const printInvoice = () => {
     window.print();
   };
 
   const [billData, setBillData] = useState({
-    billtype:'',
-    customer: '',
-    address:'',
-    city:'',
-    state:'',
-    zip:'',
-    invoice:'',
-    date: new Date().toISOString().split('T')[0],
+    billtype: "",
+    customer: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    invoice: "",
+    date: new Date().toISOString().split("T")[0],
     additionalItems: [],
-    notes: ''
+    notes: "",
   });
 
   const [newItem, setNewItem] = useState({
-    sno:'',
-    name: '',
-    hsn:'995463',
-    units:'',
-    price: '',
-    gst:'',
-    cgst:'',
-    sgst:'',
-    totalAmount:''
+    sno: "",
+    name: "",
+    hsn: "995463",
+    units: "",
+    quantityType: "",
+    price: "",
+    gst: "",
+    cgst: "",
+    sgst: "",
+    totalAmount: "",
   });
 
   const [previewMode, setPreviewMode] = useState(false);
@@ -56,101 +56,155 @@ const BillForm = ({ onBillSaved }) => {
     const itemPrice = parseFloat(price) || 0;
     const itemUnits = parseFloat(units) || 0;
     const gstRate = parseFloat(gst) || 0;
-    
+
     const subtotal = itemPrice * itemUnits;
     const gstAmount = (subtotal * gstRate) / 100;
     const total = subtotal + gstAmount;
-    
+
     return {
       subtotal: subtotal.toFixed(2),
       gstAmount: gstAmount.toFixed(2),
       cgst: (gstAmount / 2).toFixed(2),
       sgst: (gstAmount / 2).toFixed(2),
-      total: total.toFixed(2)
+      total: total.toFixed(2),
     };
   };
 
   const handleAddItem = () => {
-    if (newItem.sno && newItem.name && newItem.hsn && newItem.units && newItem.price && newItem.gst) {
-      const calculations = calculateItemTotal(newItem.price, newItem.units, newItem.gst);
-      
+    if (
+      newItem.sno &&
+      newItem.name &&
+      newItem.hsn &&
+      newItem.units &&
+      newItem.price &&
+      newItem.gst
+    ) {
+      const calculations = calculateItemTotal(
+        newItem.price,
+        newItem.units,
+        newItem.gst
+      );
+
       const itemWithCalculations = {
         ...newItem,
         cgst: calculations.cgst,
         sgst: calculations.sgst,
-        totalAmount: calculations.total
+        totalAmount: calculations.total,
       };
 
       setBillData((prev) => ({
         ...prev,
-        additionalItems: [...prev.additionalItems, itemWithCalculations]
+        additionalItems: [...prev.additionalItems, itemWithCalculations],
       }));
 
       // Reset form for new item
       setNewItem({
-        sno:'',
-        name: '',
-        hsn:'995463',
-        units:'',
-        price: '',
-        gst:'',
-        cgst:'',
-        sgst:'',
-        totalAmount:''
+        sno: "",
+        name: "",
+        hsn: "995463",
+        units: "",
+        quantityType: "",
+        price: "",
+        gst: "",
+        cgst: "",
+        sgst: "",
+        totalAmount: "",
       });
     }
   };
 
   const convertToWords = (n) => {
-  const a = [
-    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six',
-    'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve',
-    'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-    'Seventeen', 'Eighteen', 'Nineteen'
-  ];
-  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const a = [
+      "",
+      "One",
+      "Two",
+      "Three",
+      "Four",
+      "Five",
+      "Six",
+      "Seven",
+      "Eight",
+      "Nine",
+      "Ten",
+      "Eleven",
+      "Twelve",
+      "Thirteen",
+      "Fourteen",
+      "Fifteen",
+      "Sixteen",
+      "Seventeen",
+      "Eighteen",
+      "Nineteen",
+    ];
+    const b = [
+      "",
+      "",
+      "Twenty",
+      "Thirty",
+      "Forty",
+      "Fifty",
+      "Sixty",
+      "Seventy",
+      "Eighty",
+      "Ninety",
+    ];
 
-  if (isNaN(n)) return '';
+    if (isNaN(n)) return "";
 
-  if ((n = parseInt(n).toString()).length > 9) return 'Overflow';
+    if ((n = parseInt(n).toString()).length > 9) return "Overflow";
 
-  const num = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-  if (!num) return '';
+    const num = ("000000000" + n)
+      .substr(-9)
+      .match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!num) return "";
 
-  let str = '';
-  str += (num[1] != '00') ? (a[Number(num[1])] || b[num[1][0]] + ' ' + a[num[1][1]]) + ' Crore ' : '';
-  str += (num[2] != '00') ? (a[Number(num[2])] || b[num[2][0]] + ' ' + a[num[2][1]]) + ' Lakh ' : '';
-  str += (num[3] != '00') ? (a[Number(num[3])] || b[num[3][0]] + ' ' + a[num[3][1]]) + ' Thousand ' : '';
-  str += (num[4] != '0') ? a[Number(num[4])] + ' Hundred ' : '';
-  str += (num[5] != '00') ? ((str != '') ? 'and ' : '') + (a[Number(num[5])] || b[num[5][0]] + ' ' + a[num[5][1]]) : '';
+    let str = "";
+    str +=
+      num[1] != "00"
+        ? (a[Number(num[1])] || b[num[1][0]] + " " + a[num[1][1]]) + " Crore "
+        : "";
+    str +=
+      num[2] != "00"
+        ? (a[Number(num[2])] || b[num[2][0]] + " " + a[num[2][1]]) + " Lakh "
+        : "";
+    str +=
+      num[3] != "00"
+        ? (a[Number(num[3])] || b[num[3][0]] + " " + a[num[3][1]]) +
+          " Thousand "
+        : "";
+    str += num[4] != "0" ? a[Number(num[4])] + " Hundred " : "";
+    str +=
+      num[5] != "00"
+        ? (str != "" ? "and " : "") +
+          (a[Number(num[5])] || b[num[5][0]] + " " + a[num[5][1]])
+        : "";
 
-  return str.trim().toUpperCase();
-};
-
+    return str.trim().toUpperCase();
+  };
 
   const handleRemoveItem = (index) => {
     setBillData((prev) => ({
       ...prev,
-      additionalItems: prev.additionalItems.filter((_, i) => i !== index)
+      additionalItems: prev.additionalItems.filter((_, i) => i !== index),
     }));
   };
 
   const handleNewItemChange = (e) => {
     const { name, value } = e.target;
     const updatedItem = { ...newItem, [name]: value };
-    
+
     // Auto-calculate when price, units, or gst changes
-    if (name === 'price' || name === 'units' || name === 'gst') {
+    if (name === "price" || name === "units" || name === "gst") {
       const calculations = calculateItemTotal(
-        updatedItem.price, 
-        updatedItem.units, 
+        updatedItem.price,
+        updatedItem.units,
         updatedItem.gst
       );
       updatedItem.cgst = calculations.cgst;
       updatedItem.sgst = calculations.sgst;
       updatedItem.totalAmount = calculations.total;
     }
-    
+
     setNewItem(updatedItem);
   };
 
@@ -163,29 +217,29 @@ const BillForm = ({ onBillSaved }) => {
         const itemUnits = parseFloat(item.units) || 0;
         const itemSubtotal = itemPrice * itemUnits;
         const itemTax = itemTotal - itemSubtotal;
-        
+
         return {
           subtotal: acc.subtotal + itemSubtotal,
           tax: acc.tax + itemTax,
-          total: acc.total + itemTotal
+          total: acc.total + itemTotal,
         };
       },
       { subtotal: 0, tax: 0, total: 0 }
     );
-    
+
     return {
       subtotal: totals.subtotal.toFixed(2),
       tax: totals.tax.toFixed(2),
-      total: totals.total.toFixed(2)
+      total: totals.total.toFixed(2),
     };
   };
 
   const handleExportPDF = () => {
     const totals = calculateBillTotals();
-    
+
     // Save the bill to localStorage
     const savedBill = saveBill({
-      billtype:billData.billtype,
+      billtype: billData.billtype,
       customer: billData.customer,
       address: billData.address,
       city: billData.city,
@@ -197,12 +251,12 @@ const BillForm = ({ onBillSaved }) => {
       notes: billData.notes,
       subtotal: totals.subtotal,
       taxAmount: totals.tax,
-      total: totals.total
+      total: totals.total,
     });
 
     // Save the bill to localStorage 2
     const savedBill2 = saveBill2({
-      billtype:billData.billtype,
+      billtype: billData.billtype,
       customer: billData.customer,
       address: billData.address,
       city: billData.city,
@@ -214,34 +268,34 @@ const BillForm = ({ onBillSaved }) => {
       notes: billData.notes,
       subtotal: totals.subtotal,
       taxAmount: totals.tax,
-      total: totals.total
+      total: totals.total,
     });
-    
+
     // Generate and download PDF
     generateBillPDF(savedBill);
-    
+
     // Reset form
     setBillData({
-      billtype:'',
-      customer: '',
-      address:'',
-      city:'',
-      state:'',
-      zip:'',
-      invoice:'',
-      date: new Date().toISOString().split('T')[0],
+      billtype: "",
+      customer: "",
+      address: "",
+      city: "",
+      state: "",
+      zip: "",
+      invoice: "",
+      date: new Date().toISOString().split("T")[0],
       additionalItems: [],
-      notes: ''
+      notes: "",
     });
-    
+
     setPreviewMode(false);
-    
+
     // Notify parent component that a bill was saved
     if (onBillSaved) {
       onBillSaved();
     }
-    
-    alert('Bill saved and PDF generated successfully!');
+
+    alert("Bill saved and PDF generated successfully!");
   };
 
   const renderBillPreview = () => {
@@ -251,9 +305,10 @@ const BillForm = ({ onBillSaved }) => {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-800">Bill Preview - {billData.invoice}</h2>
+            <h2 className="text-xl font-semibold text-gray-800">
+              Bill Preview - {billData.invoice}
+            </h2>
             <div className="flex gap-2">
-             
               <button
                 onClick={() => setPreviewMode(false)}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
@@ -262,33 +317,41 @@ const BillForm = ({ onBillSaved }) => {
               </button>
             </div>
           </div>
-          
-          <div className='printable bg-white p-8'>
+
+          <div className="printable bg-white p-8">
             <div className="invoice-content">
-              <img className='logo w-90' src={assets.logo} alt="" />
-                <h2 className="text-xl font-bold text-center -mt-4">{billData.billtype}</h2>
-                <div className='flex justify-between -mt-2 text-sm'>
-                <div className='px-12'>
-                  <p><strong>TO:</strong></p>
+              <img className="logo w-90" src={assets.logo} alt="" />
+              <h2 className="text-xl font-bold text-center -mt-4">
+                {billData.billtype}
+              </h2>
+              <div className="flex justify-between -mt-2 text-sm">
+                <div className="px-12">
+                  <p>
+                    <strong>TO:</strong>
+                  </p>
                   <p>{billData.customer}</p>
-                  <div className="whitespace-pre-line">
-                    {billData.address}
-                  </div>
-                  <p>{billData.city}, {billData.state} - {billData.zip}</p>
+                  <div className="whitespace-pre-line">{billData.address}</div>
+                  <p>
+                    {billData.city}, {billData.state} - {billData.zip}
+                  </p>
                 </div>
-                <div className='px-12'>
-                  <p><strong>INVOICE NO:</strong> {billData.invoice}</p>
-                  <p><strong>DATE:</strong> {billData.date}</p>
+                <div className="px-12">
+                  <p>
+                    <strong>INVOICE NO:</strong> {billData.invoice}
+                  </p>
+                  <p>
+                    <strong>DATE:</strong> {billData.date}
+                  </p>
                 </div>
               </div>
-              
+
               <table className="ml-20 w-82  border-collapse text-center text-sm mt-8">
                 <thead>
                   <tr>
                     <th className="border p-2">SL NO</th>
                     <th className="border p-2">ITEM DESCRIPTION</th>
                     <th className="border p-2">HSN</th>
-                    <th className="border p-2">UNIT</th>
+                    <th className="border p-2">QUANTITY</th>
                     <th className="border p-2">RATE</th>
                     <th className="border p-2">GST</th>
                     <th className="border p-2">CGST</th>
@@ -299,37 +362,85 @@ const BillForm = ({ onBillSaved }) => {
                 <tbody>
                   {billData.additionalItems.map((item, index) => (
                     <tr key={index} className="border-b">
-                      <td className="border p-2 text-center font-bold">{item.sno}</td>
-                      <td className="border p-2 text-center font-bold">{item.name}</td>
-                      <td className="border p-2 text-center font-bold">{item.hsn}</td>
-                      <td className='border p-2 text-center font-bold'>{item.units}</td>
-                      <td className="border p-2 text-center font-bold">₹{item.price}</td>
-                      <td className="border p-2 text-center font-bold">{item.gst && item.gst !== '0' ? `${item.gst}%` : '-'}</td>
-                      <td className="border p-2 text-center font-bold">{item.cgst && item.cgst !== '0.00' ? `₹${item.cgst}` : '-'}</td>
-                      <td className="border p-2 text-center font-bold">{item.sgst && item.sgst !== '0.00' ? `₹${item.sgst}` : '-'}</td>
-                      <td className="border p-2 text-center font-bold">₹{item.totalAmount}</td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.sno}
+                      </td>
+                      <td className="border p-2 text-center font-bold whitespace-pre-wrap">
+                        {item.name}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.hsn}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.units + item.quantityType}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        ₹{item.price}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.gst && item.gst !== "0" ? `${item.gst}%` : "-"}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.cgst && item.cgst !== "0.00"
+                          ? `₹${item.cgst}`
+                          : "-"}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.sgst && item.sgst !== "0.00"
+                          ? `₹${item.sgst}`
+                          : "-"}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        ₹{item.totalAmount}
+                      </td>
                     </tr>
                   ))}
                   <tr>
-                    <td colSpan="8" className="border p-2 text-right font-bold">GRAND TOTAL</td>
-                    <td className="border p-2 text-center font-bold">₹{totals.total}</td>
+                    <td colSpan="8" className="border p-2 text-right font-bold">
+                      GRAND TOTAL
+                    </td>
+                    <td className="border p-2 text-center font-bold">
+                      ₹{totals.total}
+                    </td>
                   </tr>
                 </tbody>
               </table>
-              <p className="mt-12 text-sm px-12"><strong className='text-sm'>Amount in Words:</strong> {convertToWords(totals.total)}</p>
+              <p className="mt-12 text-sm px-12 whitespace-pre-wrap">
+                <strong className="text-sm">Notes: </strong>
+                {billData.notes}
+              </p>
+
+              <p className="mt-12 text-sm px-12">
+                <strong className="text-sm">Amount in Words:</strong>{" "}
+                {convertToWords(totals.total)}
+              </p>
             </div>
-            
+
             <div className="invoice-footer">
-              <div className='flex justify-between text-sm w-84 '>
-                <div className='px-12'>
-                  <p className='dev'><strong>Declaration:</strong></p>
-                  <p className='w-96'>We declare that this invoice shows the actual price of the Goods described and that all particulars are true and correct.</p>
+              <div className="flex justify-between text-sm w-84 ">
+                <div className="px-12">
+                  <p className="dev">
+                    <strong>Declaration:</strong>
+                  </p>
+                  <p className="w-96">
+                    We declare that this invoice shows the actual price of the
+                    Goods described and that all particulars are true and
+                    correct.
+                  </p>
                 </div>
-                <div className='text-sm px-12'>
-                  <p><strong>Bank name:</strong> HDFC bank</p>
-                  <p><strong>Ac/no:</strong> 5010 0562 3633 08</p>
-                  <p><strong>IFSC code:</strong> HDFC0003760</p>
-                  <p><strong>G PAY:</strong> 9790811296</p>
+                <div className="text-sm px-12">
+                  <p>
+                    <strong>Bank name:</strong> HDFC bank
+                  </p>
+                  <p>
+                    <strong>Ac/no:</strong> 5010 0562 3633 08
+                  </p>
+                  <p>
+                    <strong>IFSC code:</strong> HDFC0003760
+                  </p>
+                  <p>
+                    <strong>G PAY:</strong> 9790811296
+                  </p>
                 </div>
               </div>
               <div className="flex justify-between text-sm  px-12 gap-9 mt-12">
@@ -337,7 +448,7 @@ const BillForm = ({ onBillSaved }) => {
                 <p>Computer generated invoice requires no signature:</p>
                 <p>For VR TECH HVAC Solutions:</p>
               </div>
-                <img className='w-90 mt-2' src={assets.footer} alt="" />
+              <img className="w-90 mt-2" src={assets.footer} alt="" />
             </div>
           </div>
         </div>
@@ -350,9 +461,10 @@ const BillForm = ({ onBillSaved }) => {
       <div className="bg-white p-6 rounded-lg shadow-md">
         {/* ... keep existing code (customer form fields) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
           <div>
-            <label className="block text-gray-700 font-medium mb-2">Bill Type</label>
+            <label className="block text-gray-700 font-medium mb-2">
+              Bill Type
+            </label>
             <input
               name="billtype"
               value={billData.billtype}
@@ -366,7 +478,9 @@ const BillForm = ({ onBillSaved }) => {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-2">Customer</label>
+            <label className="block text-gray-700 font-medium mb-2">
+              Customer
+            </label>
             <input
               name="customer"
               value={billData.customer}
@@ -378,9 +492,11 @@ const BillForm = ({ onBillSaved }) => {
               placeholder="Enter customer name"
             />
           </div>
-          
+
           <div className="md:col-span-2">
-            <label className="block text-gray-700 font-medium mb-2">Address</label>
+            <label className="block text-gray-700 font-medium mb-2">
+              Address
+            </label>
             <textarea
               name="address"
               value={billData.address}
@@ -392,7 +508,7 @@ const BillForm = ({ onBillSaved }) => {
               placeholder="Enter Address"
             />
           </div>
-          
+
           <div>
             <label className="block text-gray-700 font-medium mb-2">City</label>
             <input
@@ -406,7 +522,9 @@ const BillForm = ({ onBillSaved }) => {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-2">State</label>
+            <label className="block text-gray-700 font-medium mb-2">
+              State
+            </label>
             <input
               type="text"
               name="state"
@@ -418,7 +536,9 @@ const BillForm = ({ onBillSaved }) => {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-2">Zip_code</label>
+            <label className="block text-gray-700 font-medium mb-2">
+              Zip_code
+            </label>
             <input
               type="text"
               name="zip"
@@ -430,7 +550,9 @@ const BillForm = ({ onBillSaved }) => {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium mb-2">Invoice_No</label>
+            <label className="block text-gray-700 font-medium mb-2">
+              Invoice_No
+            </label>
             <input
               type="text"
               name="invoice"
@@ -440,9 +562,11 @@ const BillForm = ({ onBillSaved }) => {
               placeholder="Enter the Invoice_No"
             />
           </div>
-           
+
           <div>
-            <label className="block text-gray-700 font-medium mb-2">Service Date</label>
+            <label className="block text-gray-700 font-medium mb-2">
+              Service Date
+            </label>
             <input
               type="date"
               name="date"
@@ -452,12 +576,14 @@ const BillForm = ({ onBillSaved }) => {
             />
           </div>
         </div>
-        
+
         <div className="mt-8">
           <h3 className="text-lg font-semibold mb-4">Service Details</h3>
           <div className=" grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="w-1/10">
-              <label className="block text-gray-700 font-medium mb-2">S/No</label>
+              <label className="block text-gray-700 font-medium mb-2">
+                S/No
+              </label>
               <input
                 type="text"
                 name="sno"
@@ -467,19 +593,11 @@ const BillForm = ({ onBillSaved }) => {
                 placeholder="0"
               />
             </div>
+
             <div className="w-1/10">
-              <label className="block text-gray-700 font-medium mb-2">SERVICES</label>
-              <input
-                type="text"
-                name="name"
-                value={newItem.name}
-                onChange={handleNewItemChange}
-                className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full"
-                placeholder="Enter service"
-              />
-            </div>
-            <div className="w-1/10">
-              <label className="block text-gray-700 font-medium mb-2">HSN</label>
+              <label className="block text-gray-700 font-medium mb-2">
+                HSN
+              </label>
               <input
                 type="text"
                 name="hsn"
@@ -488,19 +606,100 @@ const BillForm = ({ onBillSaved }) => {
                 className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full"
               />
             </div>
+            <div className="w-1/10">
+              <label className="block text-gray-700 font-medium mb-2">
+                SERVICES
+              </label>
+              <textarea
+                type="text"
+                name="name"
+                value={newItem.name}
+                rows={1}
+                onChange={handleNewItemChange}
+                className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full"
+                placeholder="Enter service"
+                style={{
+                  wordWrap: "break-word",
+                  whiteSpace: "pre-wrap",
+                  lineHeight: "1.2",
+                }}
+                onInput={(e) => {
+                  const text = e.target.value;
+                  const lines = text.split("\n");
+                  let newText = "";
+
+                  lines.forEach((line, lineIndex) => {
+                    if (line.length > 20) {
+                      let words = line.split(" ");
+                      let currentLine = "";
+
+                      words.forEach((word, wordIndex) => {
+                        if ((currentLine + word).length > 20) {
+                          if (currentLine.trim() !== "") {
+                            newText += currentLine.trim() + "\n";
+                          }
+
+                          while (word.length > 20) {
+                            newText += word.substring(0, 20) + "\n";
+                            word = word.substring(20);
+                          }
+                          currentLine = word + " ";
+                        } else {
+                          currentLine += word + " ";
+                        }
+                      });
+
+                      if (currentLine.trim() !== "") {
+                        newText += currentLine.trim();
+                      }
+                    } else {
+                      newText += line;
+                    }
+
+                    if (lineIndex < lines.length - 1) {
+                      newText += "\n";
+                    }
+                  });
+
+                  if (newText !== text) {
+                    e.target.value = newText;
+                    handleNewItemChange(e);
+                  }
+                }}
+              />
+            </div>
             <div className="w-1/11">
-              <label className="block text-gray-700 font-medium mb-2">UNIT'S</label>
+              <label className="block text-gray-700 font-medium mb-2">
+                QUANTITY
+              </label>
               <input
                 type="number"
                 name="units"
                 value={newItem.units}
                 onChange={handleNewItemChange}
                 className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full"
-                placeholder="Enter unit's"
+                placeholder="Enter Quantity"
               />
             </div>
+            <div className="w-1/10">
+              <label className="block text-gray-700 font-medium mb-2">
+                Quantity Type
+              </label>
+              <select
+                name="quantityType"
+                value={newItem.quantityType}
+                onChange={handleNewItemChange}
+                className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full"
+              >
+                <option value="">Select type</option>
+                <option value=" (unit)">Unit</option>
+                <option value=" (mtr)">Meter</option>
+              </select>
+            </div>
             <div className="w-1/11">
-              <label className="block text-gray-700 font-medium mb-2">Price (₹)</label>
+              <label className="block text-gray-700 font-medium mb-2">
+                Price (₹)
+              </label>
               <input
                 type="number"
                 name="price"
@@ -511,7 +710,9 @@ const BillForm = ({ onBillSaved }) => {
               />
             </div>
             <div className="w-1/9">
-              <label className="block text-gray-700 font-medium mb-2">GST(%)</label>
+              <label className="block text-gray-700 font-medium mb-2">
+                GST(%)
+              </label>
               <input
                 type="number"
                 name="gst"
@@ -522,7 +723,9 @@ const BillForm = ({ onBillSaved }) => {
               />
             </div>
             <div className="w-1/9">
-              <label className="block text-gray-700 font-medium mb-2">CGST(₹)</label>
+              <label className="block text-gray-700 font-medium mb-2">
+                CGST(₹)
+              </label>
               <input
                 type="number"
                 name="cgst"
@@ -533,7 +736,9 @@ const BillForm = ({ onBillSaved }) => {
               />
             </div>
             <div className="w-1/9">
-              <label className="block text-gray-700 font-medium mb-2">SGST(₹)</label>
+              <label className="block text-gray-700 font-medium mb-2">
+                SGST(₹)
+              </label>
               <input
                 type="number"
                 name="sgst"
@@ -543,8 +748,10 @@ const BillForm = ({ onBillSaved }) => {
                 placeholder="Auto calculated"
               />
             </div>
-            <div className="w-1/9">
-              <label className="text-sm text-gray-700 font-medium mb-2">TOTAL_AMT(₹)</label>
+            <div className="w-1/9 pt-2" >
+              <label className="text-sm text-gray-700 font-medium mb-2">
+                TOTAL_AMT(₹)
+              </label>
               <input
                 type="number"
                 name="totalAmount"
@@ -554,7 +761,7 @@ const BillForm = ({ onBillSaved }) => {
                 placeholder="Auto calculated"
               />
             </div>
-            
+
             <button
               type="button"
               onClick={handleAddItem}
@@ -563,7 +770,7 @@ const BillForm = ({ onBillSaved }) => {
               Add
             </button>
           </div>
-          
+
           {billData.additionalItems.length > 0 && (
             <div className="mt-4">
               <table className="w-full">
@@ -572,7 +779,7 @@ const BillForm = ({ onBillSaved }) => {
                     <th className="px-4 py-2 text-left">S/No</th>
                     <th className="px-4 py-2 text-left">SERVICES</th>
                     <th className="px-4 py-2 text-left">HSN</th>
-                    <th className="px-4 py-2 text-left">UNIT'S</th>
+                    <th className="px-4 py-2 text-left">QUANTITY</th>
                     <th className="px-4 py-2 text-left">PRICE</th>
                     <th className="px-4 py-2 text-left">GST</th>
                     <th className="px-4 py-2 text-left">CGST</th>
@@ -584,16 +791,30 @@ const BillForm = ({ onBillSaved }) => {
                 <tbody>
                   {billData.additionalItems.map((item, index) => (
                     <tr key={index} className="border-b">
-                      <td className="px-4 py-2">{item.sno}</td>
-                      <td className="px-4 py-2">{item.name}</td>
-                      <td className="px-4 py-2">{item.hsn}</td>
-                      <td className="px-4 py-2">{item.units}</td>
-                      <td className="px-4 py-2">₹{item.price}</td>
-                      <td className="border p-2 text-center font-bold">{item.gst && item.gst !== '0' ? `${item.gst}%` : '-'}</td>
-                      <td className="border p-2 text-center font-bold">{item.cgst && item.cgst !== '0.00' ? `₹${item.cgst}` : '-'}</td>
-                      <td className="border p-2 text-center font-bold">{item.sgst && item.sgst !== '0.00' ? `₹${item.sgst}` : '-'}</td>
-                      <td className="px-4 py-2">₹{item.totalAmount}</td>
-                      <td className="px-4 py-2 text-center">
+                      <td className="border px-4 py-2">{item.sno}</td>
+                      <td className=" border px-4 py-2 whitespace-pre-wrap ">
+                        {item.name}
+                      </td>
+                      <td className="border px-4 py-2">{item.hsn}</td>
+                      <td className=" border px-4 py-2">
+                        {item.units + item.quantityType}
+                      </td>
+                      <td className=" border px-4 py-2">₹{item.price}</td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.gst && item.gst !== "0" ? `${item.gst}%` : "-"}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.cgst && item.cgst !== "0.00"
+                          ? `₹${item.cgst}`
+                          : "-"}
+                      </td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.sgst && item.sgst !== "0.00"
+                          ? `₹${item.sgst}`
+                          : "-"}
+                      </td>
+                      <td className=" border px-4 py-2">₹{item.totalAmount}</td>
+                      <td className=" border px-4 py-2 text-center">
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(index)}
@@ -609,9 +830,9 @@ const BillForm = ({ onBillSaved }) => {
             </div>
           )}
         </div>
-        
+
         <div className="mt-8">
-          <label className="block text-gray-700 font-medium mb-2">Notes</label>
+          <label className="block text-gray-700 font-medium mb-2">Notes </label>
           <textarea
             name="notes"
             value={billData.notes}
@@ -619,12 +840,65 @@ const BillForm = ({ onBillSaved }) => {
             className="px-4 py-2 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none w-full"
             placeholder="Add any additional notes here..."
             rows={3}
+            style={{
+              wordWrap: "break-word",
+              whiteSpace: "pre-wrap",
+              lineHeight: "1.2",
+            }}
+            onInput={(e) => {
+              const text = e.target.value;
+              const lines = text.split("\n");
+              let newText = "";
+
+              lines.forEach((line, lineIndex) => {
+                if (line.length > 55) {
+                  let words = line.split(" ");
+                  let currentLine = "";
+
+                  words.forEach((word, wordIndex) => {
+                    // If adding the word exceeds limit
+                    if ((currentLine + word).length > 55) {
+                      if (currentLine.trim() !== "") {
+                        newText += currentLine.trim() + "\n";
+                      }
+               
+                      while (word.length > 55) {
+                        newText += word.substring(0, 55) + "\n";
+                        word = word.substring(55);
+                      }
+                      currentLine = word + " ";
+                    } else {
+                      currentLine += word + " ";
+                    }
+                  });
+
+                  if (currentLine.trim() !== "") {
+                    newText += currentLine.trim();
+                  }
+                } else {
+                  newText += line;
+                }
+
+                // Only add a line break if it's not the last line
+                if (lineIndex < lines.length - 1) {
+                  newText += "\n";
+                }
+              });
+
+              // Update only if changed
+              if (newText !== text) {
+                e.target.value = newText;
+                handleNewItemChange(e);
+              }
+            }}
           ></textarea>
         </div>
-        
+
         <div className="mt-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <h3 className="text-lg font-semibold">Bill Total: ₹{calculateBillTotals().total}</h3>
+            <h3 className="text-lg font-semibold">
+              Bill Total: ₹{calculateBillTotals().total}
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <button
                 type="button"
@@ -651,8 +925,7 @@ const BillForm = ({ onBillSaved }) => {
     <div>
       {previewMode ? (
         <div>
-          <div className="mb-4 flex justify-between items-center">
-          </div>
+          <div className="mb-4 flex justify-between items-center"></div>
           {renderBillPreview()}
         </div>
       ) : (

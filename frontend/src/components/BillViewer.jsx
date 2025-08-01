@@ -93,9 +93,9 @@ const BillViewer = ({ bill, onClose, onDownload }) => {
                         {bill.additionalItems.map((item, index) => (
                     <tr key={index} className="border-b">
                        <td className="border p-2 text-center font-bold">{item.sno}</td>
-                      <td className="border p-2 text-center font-bold">{item.name}</td>
+                      <td className="border p-2 text-center font-bold whitespace-pre-wrap">{item.name}</td>
                       <td className="border p-2 text-center font-bold">{item.hsn}</td>
-                      <td className='border p-2 text-center font-bold'>{item.units}</td>
+                      <td className='border p-2 text-center font-bold'>{item.units+item.quantityType}</td>
                       <td className="border p-2 text-center font-bold">₹{item.price}</td>
                        <td className="border p-2 text-center font-bold">{item.gst && item.gst !== '0' ? `${item.gst}%` : '-'}</td>
                       <td className="border p-2 text-center font-bold">{item.cgst && item.cgst !== '0.00' ? `₹${item.cgst}` : '-'}</td>
@@ -109,6 +109,10 @@ const BillViewer = ({ bill, onClose, onDownload }) => {
                     </tr>
             </tbody>
         </table>
+        <p className="mt-12 text-sm px-12 whitespace-pre-wrap">
+                <strong className="text-sm">Notes:  </strong>
+                {bill.notes}
+              </p>
         <p className="mt-12 text-sm px-12"><strong className='text-sm'>Amount in Words :</strong> {convertToWords(bill.total)}</p>
         </div>
         <div className="invoice-footer">

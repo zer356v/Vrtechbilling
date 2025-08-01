@@ -9,7 +9,7 @@
  * @property {string} zip - Zip name
  * @property {string} invoice - Invoice number from form
  * @property {string} date - Service date
- * @property {Array<{sno: string, name: string, hsn: string, units: string, price: string, gst: string, cgst: string, sgst: string, totalAmount: string}>} additionalItems - Additional line items
+ * @property {Array<{sno: string, name: string, hsn: string, units: string, price: string, gst: string, cgst: string, sgst: string, totalAmount: string , quantityType:string}>} additionalItems - Additional line items
  * @property {string} notes - Additional notes
  * @property {'Paid' | 'Pending' | 'Overdue'} status - Payment status
  * @property {string} createdAt - Creation timestamp
