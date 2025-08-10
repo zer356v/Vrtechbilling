@@ -96,26 +96,32 @@ export const generateBillPDF = (bill) => {
   pdf.setFontSize(9);
   pdf.setFillColor(255, 255, 255);
 
-  const columns = [
-    { title: 'SL NO', x: 18, width: 13 },
-    { title: 'ITEM DESCRIPTION', x: 31, width: 47 },
-    { title: 'HSN', x: 78, width: 15 },
-    { title: 'QTY', x: 93, width: 15 },
-    { title: 'RATE', x: 108, width: 15 },
-    { title: 'GST', x: 123, width: 15 },
-    { title: 'CGST', x: 138, width: 15 },
-    { title: 'SGST', x: 153, width: 15 },
-    { title: 'TOTAL AMT', x: 168, width: 38 }, // shifted left & reduced width
-  ];
-  
+// Shift table a little to the left
+const shiftLeft = -5;
 
-  const headerHeight = 10;
-  pdf.rect(20, y, 190, headerHeight, 'F');
-  columns.forEach(col => {
-    pdf.rect(col.x, y, col.width, headerHeight);
-    const centerX = col.x + col.width / 2;
-    pdf.text(col.title, centerX, y + 7, { align: 'center' });
-  });
+const columns = [
+  { title: 'SL NO', x: 18 + shiftLeft, width: 13 },
+  { title: 'ITEM DESCRIPTION', x: 31 + shiftLeft, width: 47 },
+  { title: 'HSN', x: 78 + shiftLeft, width: 15 },
+  { title: 'QTY', x: 93 + shiftLeft, width: 15 },
+  { title: 'RATE', x: 108 + shiftLeft, width: 15 },
+  { title: 'GST', x: 123 + shiftLeft, width: 15 },
+  { title: 'CGST', x: 138 + shiftLeft, width: 15 },
+  { title: 'SGST', x: 153 + shiftLeft, width: 15 },
+  { title: 'TOTAL AMT', x: 168 + shiftLeft, width: 38 },
+];
+
+const headerHeight = 10; // <-- declare before using
+
+// Draw header background (shifted left too)
+pdf.rect(20 + shiftLeft, y, 190, headerHeight, 'F');
+
+columns.forEach(col => {
+  pdf.rect(col.x, y, col.width, headerHeight);
+  const centerX = col.x + col.width / 2;
+  pdf.text(col.title, centerX, y + 7, { align: 'center' });
+});
+
 
   y += headerHeight + 2;
   pdf.setFont('helvetica', 'normal');
@@ -147,22 +153,21 @@ export const generateBillPDF = (bill) => {
       pdf.rect(col.x, y, col.width, rowHeight);
 
       if (i === 1) {
-        // Centered multiline description
+        // Centered multiline description, same font size as others
         const lines = wrapText(pdf, values[i], col.width - 2);
         const startY = y + (rowHeight - lines.length * 4) / 2;
         const centerX = col.x + col.width / 2;
-        pdf.setFontSize(12);
+        pdf.setFontSize(9); // same as other columns
         lines.forEach((line, idx) => {
-          pdf.text(line, centerX, startY + idx * 4 + 3, { align: 'center' });
+            pdf.text(line, centerX, startY + idx * 4 + 3, { align: 'center' });
         });
-        pdf.setFontSize(9);
-      } else {
+    } else {
         const text = values[i];
         const textY = y + rowHeight / 2 + 2;
-
         const centerX = col.x + col.width / 2;
+        pdf.setFontSize(9); // ensure same size for all
         pdf.text(text, centerX, textY, { align: 'center' });
-      }
+    }    
     });
 
     grandTotal += parseFloat(item.totalAmount) || 0;
@@ -208,55 +213,56 @@ pdf.text(totalText, totalAmtCol.x + totalAmtCol.width / 2, y + 6, { align: 'cent
     y += 5;
   }
 
-  // Amount in Words
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Amount in Words:', 20, y);
-  pdf.setFont('helvetica', 'normal');
-  const amountInWords = convertToWords(Math.round(grandTotal));
-  pdf.text(`${amountInWords} RUPEES ONLY`, 20, y + 5);
-  y += 20;
+    // --- After Grand Total ---
+    const fixedBottomY = 210; // fixed starting point for bottom sections
 
-  // Declaration
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Declaration:', 20, y);
-  y += 5;
-  pdf.setFont('helvetica', 'normal');
-  const declaration = pdf.splitTextToSize(
-    'We declare that this invoice shows the actual price of the Goods described and that all particulars are true and correct.',
-    90
-  );
-  pdf.text(declaration, 20, y);
-
-  // Bank Details
-  const bankY = y - 5;
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Bank name:', 150, bankY);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text('HDFC bank', 170, bankY);
-
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Ac/no:', 150, bankY + 5);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text('5010 0562 3633 08', 170, bankY + 5);
-
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('IFSC code:', 150, bankY + 10);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text('HDFC0003760', 170, bankY + 10);
-
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('G PAY:', 150, bankY + 15);
-  pdf.setFont('helvetica', 'normal');
-  pdf.text('9790811296', 170, bankY + 15);
-
-  y += 35;
-
-  // Signatures
-  pdf.setFont('helvetica', 'normal');
-  pdf.text('Customer Signature:', 20, 240);
-  pdf.text('Computer generated invoice requires no signature:', 75, 240);
-  pdf.text('For VR TECH HVAC Solutions:', 150, 240);
+    // Amount in Words
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Amount in Words:', 20, fixedBottomY);
+    pdf.setFont('helvetica', 'normal');
+    const amountInWords = convertToWords(Math.round(grandTotal));
+    pdf.text(`${amountInWords} RUPEES ONLY`, 20, fixedBottomY + 5);
+  
+    // Declaration (Left side)
+    const declarationY = fixedBottomY + 15;
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Declaration:', 20, declarationY);
+    pdf.setFont('helvetica', 'normal');
+    const declaration = pdf.splitTextToSize(
+      'We declare that this invoice shows the actual price of the Goods described and that all particulars are true and correct.',
+      80
+    );
+    pdf.text(declaration, 20, declarationY + 5);
+  
+    // Bank Details (Right side, aligned with Declaration)
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Bank name:', 140, declarationY);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('HDFC bank', 170, declarationY);
+  
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Ac/no:', 140, declarationY + 5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('5010 0562 3633 08', 170, declarationY + 5);
+  
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('IFSC code:', 140, declarationY + 10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('HDFC0003760', 170, declarationY + 10);
+  
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('G PAY:', 140, declarationY + 15);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('9790811296', 170, declarationY + 15);
+  
+    // Signatures (slightly lower and fixed)
+    const signY = 250;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Customer Signature:', 20, signY);
+    pdf.text('Computer generated invoice requires no signature:', 75, signY);
+    pdf.text('For VR TECH HVAC Solutions:', 150, signY);
+  
 
   // Footer Image
   if (assets.footer) {
