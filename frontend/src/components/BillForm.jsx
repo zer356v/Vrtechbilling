@@ -694,6 +694,9 @@ const BillForm = ({ onBillSaved }) => {
                 <option value="">Select type</option>
                 <option value=" (unit)">Unit</option>
                 <option value=" (mtr)">Meter</option>
+                <option value=" (kg)">Meter</option>
+                <option value=" (No's)">Meter</option>
+
               </select>
             </div>
             <div className="w-1/11">
