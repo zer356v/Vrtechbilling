@@ -87,10 +87,9 @@ export const generateBillPDF = (bill) => {
 
   // Header logo
   if (assets.logo) {
-    pdf.addImage(assets.logo, 'PNG', 20, 0, 170, 40);
-  }
-
-  let y = 30;
+    pdf.addImage(assets.logo, 'PNG', 0, 0, 210, 40);  
+  }
+  let y = 30;
 
   // Title
   pdf.setFontSize(16);
@@ -152,7 +151,7 @@ export const generateBillPDF = (bill) => {
     const rowHeight = Math.max(10, getTextHeight(descriptionWrapped) + 4);
 
     // Page break check
-    if (y + rowHeight > 270) {
+    if (y + rowHeight > 230) {  
       pdf.addPage();
       y = drawTableHeader(pdf, columns, 20);
     }
@@ -207,9 +206,6 @@ export const generateBillPDF = (bill) => {
   });
   y += 5;
 }
-
-
- 
 
   // Amount in Words
   pdf.setFont('helvetica', 'bold');
@@ -266,7 +262,7 @@ pdf.text('For VR TECH HVAC Solutions:', 150, signatureY);
 
 // Footer Image
 if (assets.footer) {
-  pdf.addImage(assets.footer, 'PNG', 20, footerTopY, 170, 30);
+  pdf.addImage(assets.footer, 'PNG', 0, 268, 210, 30);
 }
 
   // Save File
