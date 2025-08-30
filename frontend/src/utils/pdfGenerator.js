@@ -7,7 +7,7 @@ function wrapText(pdf, text, maxWidth) {
   return pdf.splitTextToSize(text, maxWidth);
 }
 
-function getTextHeight(pdf, lines) {
+function getTextHeight(lines) {
   const lineHeight = 4;
   return lines.length * lineHeight;
 }
@@ -29,7 +29,6 @@ function convertToWords(n) {
   if (!num) return '';
 
   let str = '';
-
   const formatPair = (pair) => {
     if (!pair || pair.length !== 2) return '';
     if (pair[0] === '0') return a[Number(pair[1])];
@@ -42,28 +41,65 @@ function convertToWords(n) {
   str += num[4][0] !== '0' ? `${a[Number(num[4][0])]} Hundred ` : '';
   const lastTwo = num[4].slice(1);
   if (lastTwo !== '0') {
-    str += (str !== '' ? '' : '') + (a[Number(lastTwo)] || `${b[Number(lastTwo[0])]} ${a[Number(lastTwo[1])]}`);
+    str += (a[Number(lastTwo)] || `${b[Number(lastTwo[0])]} ${a[Number(lastTwo[1])]}`);
   }
 
   return str.trim().toUpperCase();
 }
 
-// --- PDF GENERATOR ---
+// Draw text centered both horizontally and vertically
+function drawCenteredText(pdf, text, x, y, width, height, isBold = false) {
+  if (isBold) pdf.setFont('helvetica', 'bold');
+  else pdf.setFont('helvetica', 'normal');
 
+  const lines = Array.isArray(text) ? text : wrapText(pdf, String(text || ''), width - 4);
+  const lineHeight = 4;
+  const textBlockHeight = lines.length * lineHeight;
+
+  const startY = y + (height - textBlockHeight) / 2 + 3; // fine-tune vertical
+  lines.forEach((line, idx) => {
+    const textWidth = pdf.getTextWidth(line);
+    const textX = x + (width - textWidth) / 2; // horizontal center
+    pdf.text(line, textX, startY + idx * lineHeight);
+  });
+}
+
+// Draw the table header row
+function drawTableHeader(pdf, columns, startY) {
+  const headerHeight = 10;
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9);
+  pdf.setFillColor(255, 255, 255);
+
+  pdf.rect(20, startY, 190, headerHeight, 'F');
+  columns.forEach(col => {
+    pdf.rect(col.x, startY, col.width, headerHeight);
+    drawCenteredText(pdf, col.title, col.x, startY, col.width, headerHeight, true);
+  });
+
+  return startY + headerHeight + 2; // next row start
+}
+
+// --- PDF GENERATOR ---
 export const generateBillPDF = (bill) => {
   const pdf = new jsPDF();
   pdf.setFont('helvetica');
 
+  // Header logo
   if (assets.logo) {
-    pdf.addImage(assets.logo, 'PNG', 0, 0, 210, 40); // x=0, width=210mm
+    pdf.addImage(assets.logo, 'PNG', 20, 0, 170, 40);
   }
 
   let y = 30;
+
+  // Title
   pdf.setFontSize(16);
   pdf.text(bill.billtype, 105, 45, { align: 'center' });
   y += 30;
 
   pdf.setFontSize(10);
+
+  // Customer details
   pdf.setFont('helvetica', 'bold');
   pdf.text('TO:', 20, y);
   y += 5;
@@ -79,62 +115,46 @@ export const generateBillPDF = (bill) => {
 
   pdf.text(`${bill.city}, ${bill.state} - ${bill.zip}`, 20, y);
 
+  // Invoice info (right side)
   const invoiceY = y - (addressLines.length + 2) * 5;
   pdf.setFont('helvetica', 'bold');
   pdf.text('INVOICE NO:', 150, invoiceY);
   pdf.setFont('helvetica', 'normal');
   pdf.text(bill.invoice, 173, invoiceY);
+
   pdf.setFont('helvetica', 'bold');
   pdf.text('DATE:', 150, invoiceY + 5);
   pdf.setFont('helvetica', 'normal');
   pdf.text(bill.date, 165, invoiceY + 5);
 
-  y += 20;
+  y +=5;
 
-  // Table Header
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9);
-  pdf.setFillColor(255, 255, 255);
-
-// Shift table a little to the left
-const shiftLeft = -5;
-
-const columns = [
-  { title: 'SL NO', x: 18 + shiftLeft, width: 13 },
-  { title: 'ITEM DESCRIPTION', x: 31 + shiftLeft, width: 47 },
-  { title: 'HSN', x: 78 + shiftLeft, width: 15 },
-  { title: 'QTY', x: 93 + shiftLeft, width: 15 },
-  { title: 'RATE', x: 108 + shiftLeft, width: 15 },
-  { title: 'GST', x: 123 + shiftLeft, width: 15 },
-  { title: 'CGST', x: 138 + shiftLeft, width: 15 },
-  { title: 'SGST', x: 153 + shiftLeft, width: 15 },
-  { title: 'TOTAL AMT', x: 168 + shiftLeft, width: 38 },
+  // Table columns
+  const columns = [
+  { title: 'SL NO', x: 20, width: 13 },
+  { title: 'ITEM DESCRIPTION', x: 33, width: 47 },
+  { title: 'HSN', x: 80, width: 15 },
+  { title: 'QTY', x: 95, width: 15 },
+  { title: 'RATE', x: 110, width: 15 },
+  { title: 'GST', x: 125, width: 15 },
+  { title: 'CGST', x: 140, width: 17.5 },
+  { title: 'SGST', x: 157.5, width: 17.5 },
+  { title: 'TOTAL AMT', x: 175, width: 20 },
 ];
 
-const headerHeight = 10; // <-- declare before using
-
-// Draw header background (shifted left too)
-pdf.rect(20 + shiftLeft, y, 190, headerHeight, 'F');
-
-columns.forEach(col => {
-  pdf.rect(col.x, y, col.width, headerHeight);
-  const centerX = col.x + col.width / 2;
-  pdf.text(col.title, centerX, y + 7, { align: 'center' });
-});
-
-
-  y += headerHeight + 2;
-  pdf.setFont('helvetica', 'normal');
+  y = drawTableHeader(pdf, columns, y);
 
   let grandTotal = 0;
 
-  bill.additionalItems.forEach((item, index) => {
+  // Table rows
+  bill.additionalItems.forEach((item) => {
     const descriptionWrapped = wrapText(pdf, item.name || '', columns[1].width - 2);
-    const rowHeight = Math.max(10, getTextHeight(pdf, descriptionWrapped) + 4);
+    const rowHeight = Math.max(10, getTextHeight(descriptionWrapped) + 4);
 
+    // Page break check
     if (y + rowHeight > 270) {
       pdf.addPage();
-      y = 20;
+      y = drawTableHeader(pdf, columns, 20);
     }
 
     const values = [
@@ -151,124 +171,104 @@ columns.forEach(col => {
 
     columns.forEach((col, i) => {
       pdf.rect(col.x, y, col.width, rowHeight);
-
-      if (i === 1) {
-        // Centered multiline description, same font size as others
-        const lines = wrapText(pdf, values[i], col.width - 2);
-        const startY = y + (rowHeight - lines.length * 4) / 2;
-        const centerX = col.x + col.width / 2;
-        pdf.setFontSize(9); // same as other columns
-        lines.forEach((line, idx) => {
-            pdf.text(line, centerX, startY + idx * 4 + 3, { align: 'center' });
-        });
-    } else {
-        const text = values[i];
-        const textY = y + rowHeight / 2 + 2;
-        const centerX = col.x + col.width / 2;
-        pdf.setFontSize(9); // ensure same size for all
-        pdf.text(text, centerX, textY, { align: 'center' });
-    }    
+      drawCenteredText(pdf, values[i], col.x, y, col.width, rowHeight, false);
     });
 
     grandTotal += parseFloat(item.totalAmount) || 0;
     y += rowHeight;
   });
 
-// Grand Total
-const totalRowHeight = 8;
-const totalAmtCol = columns.find(col => col.title === 'TOTAL AMT');
+  // Grand total row
+  const totalRowHeight = 8;
+  const labelWidth = 135;
+  const valueWidth = 40;
 
-// Draw left portion (all columns except the last one)
-const labelX = columns[0].x;
-const labelWidth = totalAmtCol.x - labelX;
+  pdf.setFont('helvetica', 'bold');
+  pdf.rect(20, y, labelWidth, totalRowHeight);
+  pdf.rect(20 + labelWidth, y, valueWidth, totalRowHeight);
 
-pdf.setFont('helvetica', 'bold');
-pdf.rect(labelX, y, labelWidth, totalRowHeight);
-pdf.rect(totalAmtCol.x, y, totalAmtCol.width, totalRowHeight);
-
-// Label cell centered
-pdf.text('GRAND TOTAL', labelX + labelWidth / 2, y + 6, { align: 'center' });
-
-// Value cell center-aligned (instead of right)
-const totalText = `${grandTotal.toFixed(2)}`;
-pdf.text(totalText, totalAmtCol.x + totalAmtCol.width / 2, y + 6, { align: 'center' });
-
-  
+  drawCenteredText(pdf, 'GRAND TOTAL', 20, y, labelWidth, totalRowHeight, true);
+  drawCenteredText(pdf, `${grandTotal.toFixed(2)}`, 20 + labelWidth, y, valueWidth, totalRowHeight, true);
 
   y += 15;
 
-  // Notes
-  if (bill.notes) {
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
-    pdf.text('Notes:', 20, y);
-    y += 5;
+  // Notes section
+    if (bill.notes ) {
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(10);
+  pdf.text('Notes:', 20, y);
+  y += 5;
 
-    pdf.setFont('helvetica', 'normal');
-    const notesWrapped = wrapText(pdf, bill.notes, 170);
-    notesWrapped.forEach(line => {
-      pdf.text(line, 20, y);
-      y += 4;
-    });
-    y += 5;
-  }
+  pdf.setFont('helvetica', 'normal');
+  const notesWrapped = wrapText(pdf, bill.notes, 170);
+  notesWrapped.forEach(line => {
+    pdf.text(line, 20, y);
+    y += 4;
+  });
+  y += 5;
+}
 
-    // --- After Grand Total ---
-    const fixedBottomY = 210; // fixed starting point for bottom sections
 
-    // Amount in Words
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Amount in Words:', 20, fixedBottomY);
-    pdf.setFont('helvetica', 'normal');
-    const amountInWords = convertToWords(Math.round(grandTotal));
-    pdf.text(`${amountInWords} RUPEES ONLY`, 20, fixedBottomY + 5);
-  
-    // Declaration (Left side)
-    const declarationY = fixedBottomY + 15;
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Declaration:', 20, declarationY);
-    pdf.setFont('helvetica', 'normal');
-    const declaration = pdf.splitTextToSize(
-      'We declare that this invoice shows the actual price of the Goods described and that all particulars are true and correct.',
-      80
-    );
-    pdf.text(declaration, 20, declarationY + 5);
-  
-    // Bank Details (Right side, aligned with Declaration)
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Bank name:', 140, declarationY);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('HDFC bank', 170, declarationY);
-  
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Ac/no:', 140, declarationY + 5);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('5010 0562 3633 08', 170, declarationY + 5);
-  
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('IFSC code:', 140, declarationY + 10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('HDFC0003760', 170, declarationY + 10);
-  
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('G PAY:', 140, declarationY + 15);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('9790811296', 170, declarationY + 15);
-  
-    // Signatures (slightly lower and fixed)
-    const signY = 250;
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('Customer Signature:', 20, signY);
-    pdf.text('Computer generated invoice requires no signature:', 75, signY);
-    pdf.text('For VR TECH HVAC Solutions:', 150, signY);
-  
+ 
 
-  // Footer Image
-  if (assets.footer) {
-    pdf.addImage(assets.footer, 'PNG', 0, 268, 210, 30); // x=0, width=210mm
-  }
+  // Amount in Words
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Amount in Words:', 20, y);
+  pdf.setFont('helvetica', 'normal');
+  const amountInWords = convertToWords(Math.round(grandTotal));
+  pdf.text(`${amountInWords} RUPEES ONLY`, 20, y + 5);
+  y += 20;
 
-  // Save
+  // Declaration
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Declaration:', 20, y);
+  y += 5;
+  pdf.setFont('helvetica', 'normal');
+  const declaration = pdf.splitTextToSize(
+    'We declare that this invoice shows the actual price of the Goods described and that all particulars are true and correct.',
+    90
+  );
+  pdf.text(declaration, 20, y);
+
+  // Bank Details
+  const bankY = y - 5;
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Bank name:', 150, bankY);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('HDFC bank', 170, bankY);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Ac/no:', 150, bankY + 5);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('5010 0562 3633 08', 170, bankY + 5);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('IFSC code:', 150, bankY + 10);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('HDFC0003760', 170, bankY + 10);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('G PAY:', 150, bankY + 15);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('9790811296', 170, bankY + 15);
+
+  y +=35;
+
+  // --- Signatures (placed dynamically before footer) ---
+const footerTopY = 268; // footer image starts here
+const signatureY = footerTopY - 15; // 15px space above footer
+
+pdf.setFont('helvetica', 'normal');
+pdf.text('Customer Signature:', 20, signatureY);
+pdf.text('Computer generated invoice requires no signature:', 75, signatureY);
+pdf.text('For VR TECH HVAC Solutions:', 150, signatureY);
+
+// Footer Image
+if (assets.footer) {
+  pdf.addImage(assets.footer, 'PNG', 20, footerTopY, 170, 30);
+}
+
+  // Save File
   pdf.save(`Invoice-${bill.invoice}.pdf`);
 };
